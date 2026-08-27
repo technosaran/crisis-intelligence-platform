@@ -9,26 +9,9 @@ from app.models.core_models import Inventory, Warehouse, DemandRecord
 from app.schemas.shortage import ShortagePredictRequest, ShortagePredictionResponse
 from app.intelligence.shortage.predictor import shortage_predictor
 from app.intelligence.forecasting.lstm import lstm_forecaster
+from app.api.forecast import prepare_data
 
 router = APIRouter()
-
-def prepare_data(demand_records) -> pd.DataFrame:
-    data = []
-    for r in demand_records:
-        data.append({
-            "date": r.timestamp.date(),
-            "quantity": float(r.quantity)
-        })
-    df = pd.DataFrame(data)
-    df = df.groupby("date")["quantity"].sum().reset_index()
-    df['date'] = pd.to_datetime(df['date'])
-    df = df.sort_values("date")
-    
-    # Fill missing dates with 0
-    if len(df) > 0:
-        idx = pd.date_range(df['date'].min(), df['date'].max())
-        df = df.set_index('date').reindex(idx, fill_value=0.0).rename_axis('date').reset_index()
-    return df
 
 @router.post("/predict", response_model=ShortagePredictionResponse)
 def predict_shortage(

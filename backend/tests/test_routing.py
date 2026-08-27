@@ -57,3 +57,43 @@ def test_dynamic_reroute():
     # Forced to take the direct slower route because hub is blocked
     assert res_detour["path"] == [1, 3]
     assert res_detour["distance"] == 30.0
+
+def test_convoy_tour():
+    """Test multi-stop convoy tour optimizer (TSP heuristic)."""
+    locs = [
+        MockLocation(1, "Warehouse", 13.0, 80.0),
+        MockLocation(2, "Hospital A", 13.1, 80.1),
+        MockLocation(3, "Hospital B", 13.2, 80.2),
+        MockLocation(4, "Shelter C", 13.15, 80.05)
+    ]
+    routes = [
+        MockRoute(1, 2, 10.0, 15.0),
+        MockRoute(2, 3, 10.0, 15.0),
+        MockRoute(1, 3, 30.0, 45.0),
+        MockRoute(1, 4, 8.0, 12.0),
+        MockRoute(4, 2, 7.0, 10.0),
+        MockRoute(4, 3, 15.0, 22.0)
+    ]
+    routing_engine.build_graph(locs, routes)
+    
+    result = routing_engine.calculate_convoy_tour(origin=1, stop_ids=[2, 3, 4])
+    assert result["status"] == "success"
+    # Should visit all stops
+    assert 2 in result["path"]
+    assert 3 in result["path"]
+    assert 4 in result["path"]
+    # Should start at origin
+    assert result["path"][0] == 1
+
+def test_no_path_exists():
+    """Test that routing returns error when no path exists."""
+    locs = [
+        MockLocation(1, "Warehouse", 13.0, 80.0),
+        MockLocation(2, "Isolated", 14.0, 81.0)
+    ]
+    routes = []  # No edges
+    routing_engine.build_graph(locs, routes)
+    
+    res = routing_engine.calculate_dijkstra(1, 2)
+    assert res["status"] == "error"
+

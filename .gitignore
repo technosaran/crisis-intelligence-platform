@@ -10,3 +10,6 @@ __pycache__/
 .env.local
 .DS_Store
 crisis.db
+*.log
+append_model.py
+.pytest_cache/

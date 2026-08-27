@@ -51,12 +51,20 @@ class RoutingEngine:
             return attrs
         return None
 
-    def _euclidean_heuristic(self, u, v):
-        """Heuristic for A* based on Euclidean distance of lat/lon in km"""
+    def _euclidean_heuristic(self, u, v, objective="shortest"):
+        """Heuristic for A* based on Euclidean distance of lat/lon.
+        Scaled appropriately for different objectives to maintain admissibility."""
         pos_u = self.node_positions.get(u)
         pos_v = self.node_positions.get(v)
         if pos_u and pos_v:
-            return math.sqrt((pos_u[0] - pos_v[0])**2 + (pos_u[1] - pos_v[1])**2) * 111.0
+            dist_km = math.sqrt((pos_u[0] - pos_v[0])**2 + (pos_u[1] - pos_v[1])**2) * 111.0
+            if objective == "fastest":
+                # Convert km to minimum possible time (assume max speed ~60 km/h)
+                return dist_km * 1.0  # 1 min per km at 60km/h
+            elif objective == "safest":
+                # Safety weight is dist * (1 + risk*3), minimum risk=0 so minimum weight = dist
+                return dist_km
+            return dist_km
         return 0
 
     def _format_route_result(self, path: List[int], algorithm: str) -> Dict:
@@ -111,7 +119,7 @@ class RoutingEngine:
     def calculate_astar(self, source: int, destination: int, objective: str = "fastest") -> Dict:
         weight_key = "time" if objective == "fastest" else "safety_weight" if objective == "safest" else "weight"
         try:
-            path = nx.astar_path(self.G, source, destination, heuristic=self._euclidean_heuristic, weight=weight_key)
+            path = nx.astar_path(self.G, source, destination, heuristic=lambda u, v: self._euclidean_heuristic(u, v, objective), weight=weight_key)
             return self._format_route_result(path, f"astar ({objective})")
         except nx.NetworkXNoPath:
             return {"status": "error", "message": "No navigable path exists between source and destination."}
@@ -143,7 +151,7 @@ class RoutingEngine:
 
             for candidate in unvisited:
                 try:
-                    p = nx.astar_path(self.G, current_node, candidate, heuristic=self._euclidean_heuristic, weight=weight_key)
+                    p = nx.astar_path(self.G, current_node, candidate, heuristic=lambda u, v: self._euclidean_heuristic(u, v, objective), weight=weight_key)
                     # Calculate path length
                     length = sum(self.G[u][v].get(weight_key, 1.0) for u, v in zip(p[:-1], p[1:]))
                     if length < best_dist:

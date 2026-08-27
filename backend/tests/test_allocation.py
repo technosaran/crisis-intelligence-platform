@@ -31,3 +31,33 @@ def test_allocation_optimization():
     
     # Zone C gets 0.
     assert alloc_map["Zone C"] == 0.0
+
+def test_multi_warehouse_allocation():
+    """Test the multi-warehouse to multi-zone transportation LP optimizer."""
+    warehouses = [
+        {"id": 1, "name": "Central Depot", "stock": 5000, "lat": 13.05, "lng": 80.245},
+        {"id": 2, "name": "North Hub", "stock": 4000, "lat": 13.12, "lng": 80.21},
+    ]
+    demands = [
+        {"location_id": 1, "location_name": "Zone A", "demand": 4500, "priority_score": 92.0, "lat": 13.118, "lng": 80.220},
+        {"location_id": 2, "location_name": "Zone B", "demand": 3800, "priority_score": 85.0, "lat": 12.970, "lng": 80.215},
+    ]
+    
+    result = allocation_optimizer.optimize_multi_warehouse_allocation(warehouses, demands, fairness_ratio=0.15)
+    
+    assert result["status"] == "success"
+    assert result["total_allocated"] > 0
+    assert result["total_allocated"] <= 9000  # Can't exceed total supply
+    assert len(result["allocations"]) == 2
+    assert len(result["shipping_matrix"]) > 0
+    
+    # Each zone should get at least the fairness minimum (15% of demand)
+    for alloc in result["allocations"]:
+        assert alloc["allocated_amount"] >= alloc["requested_demand"] * 0.15 * 0.9  # small tolerance
+
+def test_allocation_empty_demand():
+    """Test that empty demand returns zero allocation."""
+    result = allocation_optimizer.optimize_allocation(10000.0, [])
+    assert result["status"] == "success"
+    assert result["total_allocated"] == 0.0
+

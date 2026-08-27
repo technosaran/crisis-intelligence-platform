@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from app.db.base import get_db
+from app.api.deps import get_db
 from app.models.core_models import SupplyChainLedger
 from app.services.blockchain_service import verify_chain, add_transaction
 from pydantic import BaseModel

@@ -15,9 +15,13 @@ The core value of this platform resides in its intelligence pipeline, which stri
 - **Algorithm**: `days_until_stockout = inventory / daily_demand_forecast`
 - Interpolates the exact day stock will run out. Assigns a status (`CRITICAL`, `WARNING`, `SAFE`) and a mathematical probability based on proximity.
 
-## 4. Priority Engine
-- **Algorithm**: `Priority = (Medical Urgency * Pop * Shortage Risk * Vulnerability * Accessibility) * 100`
-- Normalizes disparate metrics into a strict 0.0-1.0 scale before computing the product.
+## 4. Priority Engine (Multi-Criteria Decision Analysis)
+- **Algorithm**: Weighted Sum Model (MCDA/AHP):
+  ```
+  Priority = (W_med × MedicalUrgency + W_short × ShortageProbability + W_vuln × Vulnerability + W_pop × Population + W_acc × AccessibilityRisk) × 100
+  ```
+- **Default AHP Weights**: Medical Urgency (30%), Shortage Probability (25%), Vulnerability (20%), Population (15%), Accessibility Risk (10%).
+- Normalizes disparate metrics into a strict 0.0-1.0 scale before computing the weighted sum. Supports user-configurable custom weights via the `/priority/evaluate-weights` endpoint.
 
 ## 5. Decision Synthesis
 - An overarching rule tree determines the operational outcome. If inventory == 0 and shortage is CRITICAL, the engine outputs `REPLENISH`. If inventory > 0 but < demand, it outputs `ALLOCATE`.

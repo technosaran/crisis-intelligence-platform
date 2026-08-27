@@ -136,7 +136,6 @@ def start_simulation(db: Session, scenario_name: str, affected_zones: list[int],
         if random.random() < scenario["road_closure_probability"]:
             route.status = "CLOSED"
             route.risk_score = 1.0
-            route.risk_score = 1.0
             
     db.commit()
     return crisis

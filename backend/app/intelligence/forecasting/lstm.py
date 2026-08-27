@@ -2,7 +2,11 @@ import torch
 import torch.nn as nn
 import pandas as pd
 import numpy as np
+import json
+import logging
 from datetime import timedelta
+
+logger = logging.getLogger(__name__)
 
 class LSTMModel(nn.Module):
     def __init__(self, input_size=1, hidden_size=32, num_layers=1, output_size=1):
@@ -24,19 +28,36 @@ class LSTMModel(nn.Module):
 class LSTMForecaster:
     def __init__(self):
         import os
-        self.model_path = os.path.join(os.path.dirname(__file__), 'weights', 'lstm_v1.pt')
+        self.weights_dir = os.path.join(os.path.dirname(__file__), 'weights')
+        self.model_path = os.path.join(self.weights_dir, 'lstm_v1.pt')
+        self.scaler_path = os.path.join(self.weights_dir, 'scaler_params.json')
         self._model = None
+        self._scaler_min = None
+        self._scaler_max = None
+        self._has_pretrained_weights = False
         self._load_model()
     
     def _load_model(self):
-        """Load and cache the pre-trained LSTM model."""
+        """Load and cache the pre-trained LSTM model and its scaler params."""
         import os
         self._model = LSTMModel(input_size=1, hidden_size=16, num_layers=1, output_size=1)
         if os.path.exists(self.model_path):
             self._model.load_state_dict(torch.load(self.model_path, map_location=torch.device('cpu'), weights_only=True))
-            print(f"LSTM model loaded from {self.model_path}")
+            self._has_pretrained_weights = True
+            logger.info(f"LSTM model loaded from {self.model_path}")
         else:
-            print(f"Warning: Pre-trained LSTM weights not found at {self.model_path}. Using uninitialized model.")
+            self._has_pretrained_weights = False
+            logger.warning(f"Pre-trained LSTM weights NOT FOUND at {self.model_path}. "
+                           f"Model will use per-request normalization (less accurate).")
+        
+        # Load saved scaler params if available
+        if os.path.exists(self.scaler_path):
+            with open(self.scaler_path, 'r') as f:
+                scaler = json.load(f)
+            self._scaler_min = scaler.get("data_min", None)
+            self._scaler_max = scaler.get("data_max", None)
+            logger.info(f"Scaler params loaded: min={self._scaler_min}, max={self._scaler_max}")
+        
         self._model.eval()
 
     def create_sequences(self, data, seq_length):
@@ -53,10 +74,16 @@ class LSTMForecaster:
         if df.empty or len(df) < seq_length + 2:
              return []
 
-        # Normalize data (min-max scaling)
         data = df['quantity'].values.astype(float)
-        data_min = np.min(data)
-        data_max = np.max(data)
+        
+        # Use saved training scaler if available (consistent with training),
+        # otherwise fall back to per-request normalization
+        if self._scaler_min is not None and self._scaler_max is not None and self._has_pretrained_weights:
+            data_min = self._scaler_min
+            data_max = self._scaler_max
+        else:
+            data_min = float(np.min(data))
+            data_max = float(np.max(data))
         
         if data_max == data_min:
              data_normalized = np.zeros_like(data)
@@ -88,8 +115,8 @@ class LSTMForecaster:
                     "predicted_demand": pred_val,
                     "lower_bound": round(max(0.0, pred_val * 0.85), 2),
                     "upper_bound": round(pred_val * 1.15, 2),
-                    "confidence": 0.84,
-                    "model_version": "LSTM_v1_offline"
+                    "confidence": 0.84 if self._has_pretrained_weights else 0.55,
+                    "model_version": "LSTM_v1_pretrained" if self._has_pretrained_weights else "LSTM_v1_fallback"
                 })
                 
                 current_seq = np.append(current_seq[1:], pred)
