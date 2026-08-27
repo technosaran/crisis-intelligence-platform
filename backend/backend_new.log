@@ -1,0 +1,11 @@
+INFO:     Started server process [13952]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+LSTM model loaded from C:\Users\saran\Desktop\project X\crisis-intelligence-platform\backend\app\intelligence\forecasting\weights\lstm_v1.pt
+INFO:     127.0.0.1:62908 - "GET /api/v1/simulation/info HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62910 - "POST /api/v1/simulation/start HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62912 - "POST /api/v1/nlp/analyze HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62914 - "POST /api/v1/forecast/predict HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62916 - "POST /api/v1/allocation/optimize HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62918 - "POST /api/v1/routing/calculate HTTP/1.1" 200 OK

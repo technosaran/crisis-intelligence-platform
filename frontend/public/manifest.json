@@ -1,0 +1,22 @@
+{
+  "name": "Crisis Intelligence Platform — Emergency SOS",
+  "short_name": "Crisis SOS",
+  "description": "AI-powered crisis resource intelligence and emergency SOS portal",
+  "start_url": "/sos",
+  "display": "standalone",
+  "background_color": "#dc2626",
+  "theme_color": "#dc2626",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

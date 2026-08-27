@@ -1,0 +1,124 @@
+{
+  "name": "Crisis Alert Orchestration",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "crisis-webhook",
+        "options": {}
+      },
+      "id": "e7b0f6df-b9eb-4a0b-93f5-7286d944e8c1",
+      "name": "FastAPI Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        250,
+        300
+      ],
+      "webhookId": "crisis-alert-webhook-1234"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.body.severity }}",
+              "value2": "CRITICAL"
+            }
+          ]
+        }
+      },
+      "id": "d7a4b8df-9c12-4f2a-b7e6-123456789abc",
+      "name": "Check Severity",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        450,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://hook.us1.make.com/mock-slack-url",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "text",
+              "value": "=🚨 CRITICAL ALERT in {{ $json.body.location }}: {{ $json.body.message }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "f8c5d9ee-1d23-4e4b-a9f7-987654321def",
+      "name": "Send Critical Notification",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        700,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://hook.us1.make.com/mock-slack-url",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "text",
+              "value": "=⚠️ WARNING in {{ $json.body.location }}: {{ $json.body.message }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "a1b2c3d4-e5f6-4a7b-8c9d-abcdef123456",
+      "name": "Send Warning Notification",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        700,
+        400
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "FastAPI Webhook": {
+      "main": [
+        [
+          {
+            "node": "Check Severity",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Severity": {
+      "main": [
+        [
+          {
+            "node": "Send Critical Notification",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Warning Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {},
+  "versionId": "f789d93a-861f-4bb0-b74c-42352226279f"
+}
